@@ -1,0 +1,5 @@
+flask
+pandas
+numpy
+gunicorn    # optional for production
+scikit-learn # optional, for Match Predictor later
