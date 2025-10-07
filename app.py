@@ -1,6 +1,14 @@
 from flask import Flask, render_template, jsonify, request
 import pandas as pd
 import numpy as np
+from flask import render_template
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, auc
+import matplotlib.pyplot as plt
+import numpy as np
+import os
 
 app = Flask(__name__)
 
@@ -205,3 +213,113 @@ def api_compare():
 if __name__ == "__main__":
     # debug True for development; switch off for production
     app.run(debug=True, port=5000)
+
+@app.route('/predict')
+def predict():
+    # Load and preprocess data
+    df = pd.read_csv('player_stats.csv')
+    df = df.drop_duplicates()
+    df['acs'] = pd.to_numeric(df['acs'], errors='coerce')
+    df = df.dropna(subset=['acs'])
+    for col in ['kill', 'death', 'assist', 'kast%', 'adr', 'hs%']:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+        df[col] = df[col].fillna(df[col].median())
+    
+    threshold = np.percentile(df['acs'], 80)
+    df['High_Performer'] = (df['acs'] >= threshold).astype(int)
+    
+    features = df[['kill', 'death', 'assist', 'kast%', 'adr', 'hs%']]
+    target = df['High_Performer']
+    
+    X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.3, random_state=42, stratify=target)
+    
+    model = RandomForestClassifier(random_state=42, n_estimators=100)
+    model.fit(X_train, y_train)
+    preds = model.predict(X_test)
+    
+    accuracy = accuracy_score(y_test, preds)
+    precision = precision_score(y_test, preds)
+    recall = recall_score(y_test, preds)
+    f1 = f1_score(y_test, preds)
+    conf_mat = confusion_matrix(y_test, preds).tolist()  # Convert to list for easier rendering
+    
+    y_score = model.predict_proba(X_test)[:, 1]
+    fpr, tpr, _ = roc_curve(y_test, y_score)
+    roc_auc = auc(fpr, tpr)
+    
+    # Plot ROC curve
+    plt.figure()
+    plt.plot(fpr, tpr, label='Random Forest (area = %.2f)' % roc_auc)
+    plt.plot([0, 1], [0, 1], linestyle='--', color='gray')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    plt.legend(loc="lower right")
+    
+    # Save plot image to static folder (ensure 'static' folder exists)
+    roc_path = os.path.join('static', 'roc_curve.png')
+    plt.savefig(roc_path)
+    plt.close()
+    
+    # Pass results to template
+    return render_template('predict.html',
+                           accuracy=accuracy,
+                           precision=precision,
+                           recall=recall,
+                           f1=f1,
+                           confusion_matrix=conf_mat,
+                           roc_image='roc_curve.png')
+
+@app.route('/predict_player', methods=['POST'])
+def predict_player():
+    # Get form inputs
+    try:
+        values = [float(request.form['kill']),
+                  float(request.form['death']),
+                  float(request.form['assist']),
+                  float(request.form['kast']),
+                  float(request.form['adr']),
+                  float(request.form['hs'])]
+    except Exception as e:
+        # You can log error details here if needed
+        return render_template('predict.html',
+            player_prediction=None,
+            accuracy=0,
+            precision=0,
+            recall=0,
+            f1=0,
+            confusion_matrix=[[0,0],[0,0]],
+            roc_image='roc_curve.png'
+        )
+
+    # Load and preprocess the data/train the model exactly as before
+    df = pd.read_csv('player_stats.csv')
+    df = df.drop_duplicates()
+    df['acs'] = pd.to_numeric(df['acs'], errors='coerce')
+    df = df.dropna(subset=['acs'])
+    for col in ['kill', 'death', 'assist', 'kast%', 'adr', 'hs%']:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+        df[col] = df[col].fillna(df[col].median())
+
+    threshold = np.percentile(df['acs'], 80)
+    df['High_Performer'] = (df['acs'] >= threshold).astype(int)
+    features = df[['kill', 'death', 'assist', 'kast%', 'adr', 'hs%']]
+    target = df['High_Performer']
+
+    model = RandomForestClassifier(random_state=42, n_estimators=100)
+    model.fit(features, target)
+
+    # Make prediction
+    player_pred = model.predict([values])[0]
+
+    # Render the result on the same predict page
+    # ALWAYS supply the required variables
+    return render_template('predict.html',
+        player_prediction=player_pred,
+        accuracy=0,
+        precision=0,
+        recall=0,
+        f1=0,
+        confusion_matrix=[[0,0],[0,0]],
+        roc_image='roc_curve.png'
+    )

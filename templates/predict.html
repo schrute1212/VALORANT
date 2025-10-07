@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<!-- Valorant-style Showdown Arena Heading -->
+<div class="showdown-hero" style="padding:60px 0 30px 0;margin-bottom:0;text-align:center;">
+  <h1 class="showdown-title" style="font-size:68px;font-family: 'Rajdhani',sans-serif;text-transform:uppercase;letter-spacing:8px;margin-bottom:16px;line-height:1;">
+    <span style="background: linear-gradient(45deg, #FF4655, #6CE3FF 70%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Stat Predictor Arena</span>
+  </h1>
+  <p class="showdown-subtitle" style="font-size:22px;text-align:center;font-family:Rajdhani,sans-serif;font-weight:600;color:#ff708a;">
+    Enter your stats in the neon battle grid below. Will you rank as a <span style="color:#6CE3FF;font-weight:900;background:linear-gradient(45deg,#6CE3FF,#FFD700);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">HIGH PERFORMER?</span>
+  </p>
+  <div class="battle-icon" style="font-size:90px;margin-top:32px;animation:battlePulse 2.4s infinite;">
+    <svg width="90" height="90" fill="none" viewBox="0 0 72 72"><path fill="#6CE3FF" d="M36 8l10 26H26z"/><path fill="#FF4655" d="M36 64l-10-26h20z"/></svg>
+  </div>
+</div>
+
+<!-- Arena Grid 3x2 Stat Columns -->
+<form method="POST" action="{{ url_for('predict_player') }}">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:34px 30px;max-width:950px;margin:30px auto 44px auto;">
+    <div style="background:rgba(34,42,55,0.94);border-radius:24px;box-shadow:0 0 38px #FF4655,0 0 40px #fff2;animation:pulseRed 2.3s infinite alternate;padding:44px 18px;">
+      <label style="color:#FF4655; font-weight:800; font-size:2.1rem;text-shadow:0 2px 24px #0ff5;letter-spacing:1.5px; text-transform:uppercase;display:block;text-align:center;margin-bottom:32px;">Kills</label>
+      <input name="kill" type="number" class="arena-input" style="font-size:2.2rem;" required>
+    </div>
+    <div style="background:rgba(34,42,55,0.94);border-radius:24px;box-shadow:0 0 38px #726CE3,0 0 40px #fff2;animation:pulseBlue 2.4s infinite alternate;padding:44px 18px;">
+      <label style="color:#726CE3; font-weight:800; font-size:2.1rem;text-shadow:0 2px 24px #5af5;letter-spacing:1.5px; text-transform:uppercase;display:block;text-align:center;margin-bottom:32px;">Deaths</label>
+      <input name="death" type="number" class="arena-input" style="font-size:2.2rem;" required>
+    </div>
+    <div style="background:rgba(34,42,55,0.94);border-radius:24px;box-shadow:0 0 38px #6CE3FF,0 0 40px #fff2;animation:pulseCyan 2.2s infinite alternate;padding:44px 18px;">
+      <label style="color:#6CE3FF; font-weight:800; font-size:2.1rem;text-shadow:0 2px 24px #4ff7;letter-spacing:1.5px; text-transform:uppercase;display:block;text-align:center;margin-bottom:32px;">Assists</label>
+      <input name="assist" type="number" class="arena-input" style="font-size:2.2rem;" required>
+    </div>
+    <div style="background:rgba(34,42,55,0.94);border-radius:24px;box-shadow:0 0 38px #FFA96B,0 0 40px #fff2;animation:pulseOrange 2.5s infinite alternate;padding:44px 18px;">
+      <label style="color:#FFA96B; font-weight:800; font-size:2.1rem;text-shadow:0 2px 24px #fc47;letter-spacing:1.5px;text-transform:uppercase;display:block;text-align:center;margin-bottom:32px;">KAST (%)</label>
+      <input name="kast" type="number" class="arena-input" style="font-size:2.2rem;" required>
+    </div>
+    <div style="background:rgba(34,42,55,0.94);border-radius:24px;box-shadow:0 0 38px #FFD700,0 0 40px #fff2;animation:pulseYellow 2.8s infinite alternate;padding:44px 18px;">
+      <label style="color:#FFD700; font-weight:800; font-size:2.1rem;text-shadow:0 2px 24px #ec77;letter-spacing:1.5px;text-transform:uppercase;display:block;text-align:center;margin-bottom:32px;">ADR</label>
+      <input name="adr" type="number" class="arena-input" style="font-size:2.2rem;" required>
+    </div>
+    <div style="background:rgba(34,42,55,0.94);border-radius:24px;box-shadow:0 0 38px #FF8CFF,0 0 40px #fff2;animation:pulsePink 2.65s infinite alternate;padding:44px 18px;">
+      <label style="color:#FF8CFF; font-weight:800; font-size:2.1rem;text-shadow:0 2px 24px #a5f7;letter-spacing:1.5px;text-transform:uppercase;display:block;text-align:center;margin-bottom:32px;">HS (%)</label>
+      <input name="hs" type="number" class="arena-input" style="font-size:2.2rem;" required>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:center;margin-bottom:40px;">
+    <button type="submit" class="btn battle-btn"
+            style="font-size:2.6rem;padding:30px 90px;border-radius:24px;background:linear-gradient(45deg,#FF4655 50%,#6CE3FF 100%);font-weight:900;text-transform:uppercase;box-shadow:0 2px 44px #FF4655,0 0 32px #6CE3FF;">
+      Predict
+    </button>
+  </div>
+</form>
+
+{% if player_prediction is defined %}
+  <div class="player-prediction-result card glass"
+      style="max-width:540px;margin:24px auto 0;text-align:center;background:rgba(28,32,40,0.98);box-shadow:0 0 50px #726CE3,0 0 38px #FF4655;">
+    <h3 class="section-title" style="margin-bottom:18px;font-size:2.8rem;text-transform:uppercase;font-family:Rajdhani,sans-serif;letter-spacing:3px;">Prediction Result</h3>
+    <span class="{% if player_prediction %}status status--success{% else %}status status--error{% endif %}"
+            style="font-size:2.5rem;font-weight:900;padding:20px 44px;border-radius:20px;">
+      {{ 'HIGH PERFORMER' if player_prediction else 'NOT HIGH PERFORMER' }}
+    </span>
+  </div>
+{% endif %}
+
+<style>
+/* Reuse existing Valorant theme colors and add bigger animations for your columns */
+.arena-input {
+  width: 100%;
+  font-size: 2.2rem;
+  margin: 12px 0 0 0;
+  background: transparent;
+  border: 2.6px solid #fff5;
+  color: #fff;
+  border-radius: 15px;
+  outline: none;
+  padding: 18px 18px;
+  text-align:center;
+  font-family: 'Rajdhani', sans-serif;
+  transition: border 0.3s cubic-bezier(0.6,0.2,0.1,1.0), box-shadow 0.22s;
+}
+.arena-input:focus {
+  border-color: #FF4655;
+  box-shadow: 0 0 18px #FF4655;
+}
+@keyframes pulseRed { 0% { box-shadow: 0 0 32px #FF4655;} 100% { box-shadow: 0 0 60px #FF4655;} }
+@keyframes pulseBlue { 0% { box-shadow: 0 0 32px #726CE3;} 100% { box-shadow: 0 0 60px #726CE3;} }
+@keyframes pulseCyan { 0% { box-shadow: 0 0 32px #6CE3FF;} 100% { box-shadow: 0 0 60px #6CE3FF;} }
+@keyframes pulseOrange { 0% { box-shadow: 0 0 32px #FFA96B;} 100% { box-shadow: 0 0 60px #FFA96B;} }
+@keyframes pulseYellow { 0% { box-shadow: 0 0 32px #FFD700;} 100% { box-shadow: 0 0 60px #FFD700;} }
+@keyframes pulsePink { 0% { box-shadow: 0 0 32px #FF8CFF;} 100% { box-shadow: 0 0 60px #FF8CFF;} }
+@keyframes battlePulse { 0%,100% { transform:scale(1) rotate(0deg);} 50% { transform:scale(1.05) rotate(7deg);} }
+</style>
+
+{% endblock %}
